@@ -69,6 +69,11 @@ app.get("/instructor/:id", async (req, res) => {
   }
 });
 
+app.post("/add-instructor", async (req, res) => {
+  console.log(req.body);
+  res.send(req.body);
+});
+
 // All Categories Collection on MongoDB
 const Categories = db.collection("courseCategories");
 
@@ -106,6 +111,20 @@ app.get("/category/:id", async (req, res) => {
       success: true,
       data: data,
     });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Add Category Data Receive (POST)
+app.post("/category", async (req, res) => {
+  try {
+    const { body } = req;
+    const result = await Categories.insertOne(body);
+    res.send(result);
   } catch (error) {
     res.send({
       success: false,
