@@ -104,7 +104,7 @@ app.get("/categories", async (req, res) => {
 
 // Single Category Data Send (GET)
 app.get("/category/:id", async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id);
   try {
     const data = await Categories.findOne({ _id: id });
 
@@ -127,7 +127,34 @@ app.get("/category/:id", async (req, res) => {
   }
 });
 
-// Add Category Data Receive (POST)
+// Update Category Data (PATCH)
+app.patch("/update-category/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const reqData = req.body;
+
+  const query = { _id: id };
+  const option = { upsert: true };
+  const updateDocs = {
+    $set: {
+      cat_name: reqData.cat_name,
+      cat_slug: reqData.cat_slug,
+    },
+  };
+  const result = await Categories.updateOne(query, updateDocs, option);
+  if (!result.acknowledged) {
+    res.send({
+      success: false,
+      error: "Can't update the category",
+    });
+    return;
+  }
+  res.send({
+    success: true,
+    message: `Successfully updated ${reqData.cat_name}`,
+  });
+});
+
+// Single Category Data Receive (POST)
 app.post("/category", async (req, res) => {
   try {
     const { body } = req;
