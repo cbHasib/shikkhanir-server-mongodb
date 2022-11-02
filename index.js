@@ -196,6 +196,15 @@ app.get("/courses", async (req, res) => {
   }
 });
 
+// Course Data Update - Needed Data From Mongo (GET)
+app.get("/course-count", async (req, res) => {
+  const count = await CourseDetails.estimatedDocumentCount();
+  res.send({
+    success: true,
+    data: count,
+  });
+});
+
 // Single Course Details Data Send (GET)
 app.get("/course/:id", async (req, res) => {
   const id = parseInt(req.params.id);
@@ -213,6 +222,42 @@ app.get("/course/:id", async (req, res) => {
       success: true,
       data: data,
     });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Add Single Course (POST)
+app.post("/add-new-course", async (req, res) => {
+  try {
+    const { _id, course_title, course_slug, cat_id, price, thumbnail } =
+      req.body;
+    const courseShortData = {
+      _id,
+      course_title,
+      course_slug,
+      cat_id,
+      price,
+      thumbnail,
+    };
+
+    const resultCourseShort = await Courses.insertOne(courseShortData);
+    const resultCourseDetails = await CourseDetails.insertOne(req.body);
+
+    if (resultCourseShort && resultCourseDetails) {
+      res.send({
+        success: true,
+        message: "Successfully Added Course",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
   } catch (error) {
     res.send({
       success: false,
