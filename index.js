@@ -53,9 +53,18 @@ app.get("/instructors", async (req, res) => {
   }
 });
 
+// Course Data Update - Needed Data From Mongo (GET)
+app.get("/instructor-count", async (req, res) => {
+  const count = await Instructors.estimatedDocumentCount();
+  res.send({
+    success: true,
+    data: count,
+  });
+});
+
 // Instructor Data Send by ID (GET)
 app.get("/instructor/:id", async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id);
   try {
     const data = await Instructors.findOne({ _id: id });
     if (!data) {
@@ -77,9 +86,63 @@ app.get("/instructor/:id", async (req, res) => {
   }
 });
 
+// Update Instructor Info (PUT)
+app.put("/update-instructor/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const data = req.body;
+
+    const query = { _id: id };
+    const option = { upsert: true };
+    const newData = {
+      $set: data,
+    };
+
+    const result = await Instructors.updateOne(query, newData, option);
+
+    if (result.acknowledged && result.modifiedCount > 0) {
+      res.send({
+        success: true,
+        message: "Successfully Updated!",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Add New Instructor (POST)
 app.post("/add-instructor", async (req, res) => {
-  console.log(req.body);
-  res.send(req.body);
+  try {
+    const data = req.body;
+
+    const result = await Instructors.insertOne(data);
+
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Added Instructor",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 // All Categories Collection on MongoDB
@@ -159,7 +222,18 @@ app.post("/category", async (req, res) => {
   try {
     const { body } = req;
     const result = await Categories.insertOne(body);
-    res.send(result);
+
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Added Category",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
   } catch (error) {
     res.send({
       success: false,
@@ -247,7 +321,7 @@ app.post("/add-new-course", async (req, res) => {
     const resultCourseShort = await Courses.insertOne(courseShortData);
     const resultCourseDetails = await CourseDetails.insertOne(req.body);
 
-    if (resultCourseShort && resultCourseDetails) {
+    if (resultCourseShort.acknowledged && resultCourseDetails.acknowledged) {
       res.send({
         success: true,
         message: "Successfully Added Course",
