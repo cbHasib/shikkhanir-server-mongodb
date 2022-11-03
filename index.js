@@ -119,6 +119,30 @@ app.put("/update-instructor/:id", async (req, res) => {
   }
 });
 
+// Delete Instructor (DELETE)
+app.delete("/delete-instructor/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = await Instructors.deleteOne({ _id: id });
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Deleted Instructor",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Add New Instructor (POST)
 app.post("/add-instructor", async (req, res) => {
   try {
@@ -302,6 +326,48 @@ app.get("/course-count", async (req, res) => {
     success: true,
     data: count,
   });
+});
+
+// Course Data Update (PUT)
+app.put("/course-update/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { _id, course_title, course_slug, cat_id, price, thumbnail } = req.body;
+  const query = { _id: id };
+
+  const courseShortInfo = {
+    $set: {
+      _id,
+      course_title,
+      course_slug,
+      cat_id,
+      price,
+      thumbnail,
+    },
+  };
+  const newCourseDetails = {
+    $set: req.body,
+  };
+
+  const option = { upsert: true };
+
+  const result1 = await Courses.updateOne(query, courseShortInfo, option);
+  const result2 = await CourseDetails.updateOne(
+    query,
+    newCourseDetails,
+    option
+  );
+
+  if (result1.acknowledged && result2.acknowledged) {
+    res.send({
+      success: true,
+      message: "Successfully Update!",
+    });
+  } else {
+    res.send({
+      success: false,
+      error: "Something went wrong!",
+    });
+  }
 });
 
 // Single Course Details Data Send (GET)
