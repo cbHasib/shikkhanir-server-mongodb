@@ -431,6 +431,33 @@ app.post("/add-new-course", async (req, res) => {
   }
 });
 
+// Delete a course (DELETE)
+app.delete("/delete-course/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const result1 = await Courses.deleteOne({ _id: id });
+    const result2 = await CourseDetails.deleteOne({ _id: id });
+
+    if (result1.acknowledged && result2.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully deleted course.",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Course Content Collection on MongoDB
 const CourseContent = db.collection("courseContent");
 
