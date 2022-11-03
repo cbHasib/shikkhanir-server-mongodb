@@ -217,6 +217,31 @@ app.patch("/update-category/:id", async (req, res) => {
   });
 });
 
+// Delete Category (DELETE)
+app.delete("/delete-category/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const result = await Categories.deleteOne({ _id: id });
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Deleted!",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Single Category Data Receive (POST)
 app.post("/category", async (req, res) => {
   try {
