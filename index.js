@@ -33,6 +33,8 @@ run().catch((err) => console.log(err));
 // Database on MongoDB
 const db = client.db(`${process.env.DB_NAME}`);
 
+module.exports = { run };
+
 // Instructor Collection on MongoDB
 const Instructors = db.collection("instructors");
 
@@ -319,6 +321,33 @@ app.get("/courses", async (req, res) => {
   }
 });
 
+// Single Category Data Send (GET)
+app.get("/courses-by-category/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    const data = await Courses.find({ cat_id: id }).toArray();
+
+    if (data.length === 0) {
+      res.send({
+        success: false,
+        error: "Data not found!",
+        data: [],
+      });
+      return;
+    }
+    res.send({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Course Data Update - Needed Data From Mongo (GET)
 app.get("/course-count", async (req, res) => {
   const count = await CourseDetails.estimatedDocumentCount();
@@ -460,16 +489,18 @@ app.delete("/delete-course/:id", async (req, res) => {
 
 // Course Content Collection on MongoDB
 const CourseContent = db.collection("courseContent");
+const CourseVideo = db.collection("courseVideo");
 
 // Course Content Data Send (GET)
 app.get("/course-content/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = Number(req.params.id);
   try {
-    const data = await CourseContent.findOne({ _id: id });
-    if (!data) {
+    const data = await CourseVideo.find({ course_id: id }).toArray();
+    if (data.length === 0) {
       res.send({
         success: false,
-        data: {},
+        error: "No Video Founds!",
+        data: [],
       });
       return;
     }
@@ -477,6 +508,45 @@ app.get("/course-content/:id", async (req, res) => {
       success: true,
       data: data,
     });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Total Video Count (GET)
+app.get("/video-count", async (req, res) => {
+  try {
+    const count = await CourseVideo.estimatedDocumentCount();
+    res.send({
+      success: true,
+      data: count,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Add New Video (POST)
+app.post("/add-course-content", async (req, res) => {
+  try {
+    const result = await CourseVideo.insertOne(req.body);
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Added Video",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
   } catch (error) {
     res.send({
       success: false,
