@@ -66,12 +66,13 @@ app.get("/instructor-count", async (req, res) => {
 
 // Instructor Data Send by ID (GET)
 app.get("/instructor/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = Number(req.params.id);
   try {
     const data = await Instructors.findOne({ _id: id });
     if (!data) {
       res.send({
         success: false,
+        error: "No Instructor found",
         data: {},
       });
       return;
@@ -91,7 +92,7 @@ app.get("/instructor/:id", async (req, res) => {
 // Update Instructor Info (PUT)
 app.put("/update-instructor/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = Number(req.params.id);
     const data = req.body;
 
     const query = { _id: id };
@@ -124,7 +125,7 @@ app.put("/update-instructor/:id", async (req, res) => {
 // Delete Instructor (DELETE)
 app.delete("/delete-instructor/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = Number(req.params.id);
     const result = await Instructors.deleteOne({ _id: id });
     if (result.acknowledged) {
       res.send({
@@ -193,13 +194,14 @@ app.get("/categories", async (req, res) => {
 
 // Single Category Data Send (GET)
 app.get("/category/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = Number(req.params.id);
   try {
     const data = await Categories.findOne({ _id: id });
 
     if (!data) {
       res.send({
         success: false,
+        error: "No Category found",
         data: {},
       });
       return;
@@ -218,7 +220,7 @@ app.get("/category/:id", async (req, res) => {
 
 // Update Category Data (PATCH)
 app.patch("/update-category/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = Number(req.params.id);
   const reqData = req.body;
 
   const query = { _id: id };
@@ -246,7 +248,7 @@ app.patch("/update-category/:id", async (req, res) => {
 // Delete Category (DELETE)
 app.delete("/delete-category/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = Number(req.params.id);
 
     const result = await Categories.deleteOne({ _id: id });
     if (result.acknowledged) {
@@ -300,19 +302,40 @@ const CourseDetails = db.collection("courseDetails");
 // Course Data Send (GET)
 app.get("/courses", async (req, res) => {
   try {
-    const cursor = Courses.find({});
-    const data = await cursor.toArray();
-    if (!data) {
+    if (req.query.page && req.query.limit) {
+      const page = Number(req.query.page);
+      const limit = Number(req.query.limit);
+      const skip = (page - 1) * limit;
+      const cursor = Courses.find({}).skip(skip).limit(limit);
+      const data = await cursor.toArray();
+      if (data.length === 0) {
+        res.send({
+          success: false,
+          error: "No Course found",
+          data: [],
+        });
+        return;
+      }
       res.send({
-        success: false,
-        data: [],
+        success: true,
+        data: data,
       });
-      return;
+    } else {
+      const cursor = Courses.find({});
+      const data = await cursor.toArray();
+      if (data.length === 0) {
+        res.send({
+          success: false,
+          error: "No Course found",
+          data: [],
+        });
+        return;
+      }
+      res.send({
+        success: true,
+        data: data,
+      });
     }
-    res.send({
-      success: true,
-      data: data,
-    });
   } catch (error) {
     res.send({
       success: false,
@@ -323,7 +346,7 @@ app.get("/courses", async (req, res) => {
 
 // Single Category Data Send (GET)
 app.get("/courses-by-category/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = Number(req.params.id);
 
   try {
     const data = await Courses.find({ cat_id: id }).toArray();
@@ -331,7 +354,7 @@ app.get("/courses-by-category/:id", async (req, res) => {
     if (data.length === 0) {
       res.send({
         success: false,
-        error: "Data not found!",
+        error: "No Course found",
         data: [],
       });
       return;
@@ -359,7 +382,7 @@ app.get("/course-count", async (req, res) => {
 
 // Course Data Update (PUT)
 app.put("/course-update/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = Number(req.params.id);
   const { _id, course_title, course_slug, cat_id, price, thumbnail } = req.body;
   const query = { _id: id };
 
@@ -401,13 +424,14 @@ app.put("/course-update/:id", async (req, res) => {
 
 // Single Course Details Data Send (GET)
 app.get("/course/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = Number(req.params.id);
 
   try {
     const data = await CourseDetails.findOne({ _id: id });
     if (!data) {
       res.send({
         success: false,
+        error: "No Course found",
         data: {},
       });
       return;
@@ -463,7 +487,7 @@ app.post("/add-new-course", async (req, res) => {
 // Delete a course (DELETE)
 app.delete("/delete-course/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = Number(req.params.id);
 
     const result1 = await Courses.deleteOne({ _id: id });
     const result2 = await CourseDetails.deleteOne({ _id: id });
@@ -488,7 +512,6 @@ app.delete("/delete-course/:id", async (req, res) => {
 });
 
 // Course Content Collection on MongoDB
-const CourseContent = db.collection("courseContent");
 const CourseVideo = db.collection("courseVideo");
 
 // Course Content Data Send (GET)
@@ -499,7 +522,7 @@ app.get("/course-content/:id", async (req, res) => {
     if (data.length === 0) {
       res.send({
         success: false,
-        error: "No Video Founds!",
+        error: "No Course Content found",
         data: [],
       });
       return;
@@ -561,19 +584,40 @@ const Blogs = db.collection("blogs");
 // All Blogs Data Send (GET)
 app.get("/blogs", async (req, res) => {
   try {
-    const cursor = Blogs.find({});
-    const data = await cursor.toArray();
-    if (!data) {
+    if (req.query.page && req.query.limit) {
+      const page = Number(req.query.page);
+      const limit = Number(req.query.limit);
+      const skip = (page - 1) * limit;
+      const cursor = Blogs.find({}).skip(skip).limit(limit);
+      const data = await cursor.toArray();
+      if (data.length === 0) {
+        res.send({
+          success: false,
+          error: "No Blog Founds!",
+          data: [],
+        });
+        return;
+      }
       res.send({
-        success: false,
-        data: [],
+        success: true,
+        data: data,
       });
-      return;
+    } else {
+      const cursor = Blogs.find({});
+      const data = await cursor.toArray();
+      if (data.length === 0) {
+        res.send({
+          success: false,
+          error: "No Blog Founds!",
+          data: [],
+        });
+        return;
+      }
+      res.send({
+        success: true,
+        data: data,
+      });
     }
-    res.send({
-      success: true,
-      data: data,
-    });
   } catch (error) {
     res.send({
       success: false,
@@ -590,7 +634,8 @@ app.get("/single-blog/:slug", async (req, res) => {
     if (!data) {
       res.send({
         success: false,
-        data: [],
+        error: "No Blog Founds!",
+        data: {},
       });
       return;
     }
