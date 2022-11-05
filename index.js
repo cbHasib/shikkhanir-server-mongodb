@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
@@ -349,20 +349,79 @@ app.get("/courses-by-category/:id", async (req, res) => {
   const id = Number(req.params.id);
 
   try {
-    const data = await Courses.find({ cat_id: id }).toArray();
+    if (req.query.page && req.query.limit) {
+      const page = Number(req.query.page);
+      const limit = Number(req.query.limit);
+      const skip = (page - 1) * limit;
 
-    if (data.length === 0) {
+      if (id === 0) {
+        const cursor = Courses.find({}).skip(skip).limit(limit);
+        const data = await cursor.toArray();
+        if (data.length === 0) {
+          res.send({
+            success: false,
+            error: "No Course found",
+            data: [],
+          });
+        } else {
+          res.send({
+            success: true,
+            data: data,
+          });
+        }
+        return;
+      }
+
+      const cursor = Courses.find({ cat_id: id }).skip(skip).limit(limit);
+
+      const data = await cursor.toArray();
+      if (data.length === 0) {
+        res.send({
+          success: false,
+          error: "No Course found",
+          data: [],
+        });
+        return;
+      }
       res.send({
-        success: false,
-        error: "No Course found",
-        data: [],
+        success: true,
+        data: data,
       });
-      return;
+    } else {
+      if (id === 0) {
+        const cursor = Courses.find({});
+        const data = await cursor.toArray();
+        if (data.length === 0) {
+          res.send({
+            success: false,
+            error: "No Course found",
+            data: [],
+          });
+        } else {
+          res.send({
+            success: true,
+            data: data,
+          });
+        }
+        return;
+      }
+
+      const cursor = Courses.find({ cat_id: id });
+
+      const data = await cursor.toArray();
+      if (data.length === 0) {
+        res.send({
+          success: false,
+          error: "No Course found",
+          data: [],
+        });
+        return;
+      }
+      res.send({
+        success: true,
+        data: data,
+      });
     }
-    res.send({
-      success: true,
-      data: data,
-    });
   } catch (error) {
     res.send({
       success: false,
@@ -373,11 +432,38 @@ app.get("/courses-by-category/:id", async (req, res) => {
 
 // Course Data Update - Needed Data From Mongo (GET)
 app.get("/course-count", async (req, res) => {
-  const count = await CourseDetails.estimatedDocumentCount();
-  res.send({
-    success: true,
-    data: count,
-  });
+  try {
+    if (req.query.cat_id === "0") {
+      const count = await Courses.estimatedDocumentCount();
+      res.send({
+        success: true,
+        data: count,
+      });
+      return;
+    }
+
+    if (req.query.cat_id) {
+      const cat_id = Number(req.query.cat_id);
+      const cursor = Courses.find({ cat_id: cat_id });
+      const data = await cursor.toArray();
+      res.send({
+        success: true,
+        data: data.length,
+      });
+      return;
+    }
+
+    const count = await Courses.estimatedDocumentCount();
+    res.send({
+      success: true,
+      data: count,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
 });
 
 // Course Data Update (PUT)
@@ -580,6 +666,8 @@ app.post("/add-course-content", async (req, res) => {
 
 // Blog Collection on MongoDB (GET)
 const Blogs = db.collection("blogs");
+const BlogAuthor = db.collection("blogAuthor");
+const BlogCategory = db.collection("blogCategory");
 
 // All Blogs Data Send (GET)
 app.get("/blogs", async (req, res) => {
@@ -643,6 +731,280 @@ app.get("/single-blog/:slug", async (req, res) => {
       success: true,
       data: data,
     });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// All Author Data Send (GET)
+app.get("/authors", async (req, res) => {
+  try {
+    const cursor = BlogAuthor.find({});
+    const data = await cursor.toArray();
+    res.send({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Add New Blog Author (POST)
+app.post("/add-author", async (req, res) => {
+  try {
+    const data = req.body;
+
+    const result = await BlogAuthor.insertOne(data);
+
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Added Author",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Author Data Send by ID (GET)
+app.get("/author/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const data = await BlogAuthor.findOne({ _id: ObjectId(id) });
+    if (!data) {
+      res.send({
+        success: false,
+        error: "Author not found",
+        data: {},
+      });
+      return;
+    }
+    res.send({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Update Author Info (PUT)
+app.put("/update-author/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const data = req.body;
+
+    const query = { _id: ObjectId(id) };
+    const option = { upsert: true };
+    const newData = {
+      $set: data,
+    };
+
+    const result = await BlogAuthor.updateOne(query, newData, option);
+
+    if (result.acknowledged && result.modifiedCount > 0) {
+      res.send({
+        success: true,
+        message: "Successfully Updated!",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Delete Author (DELETE)
+app.delete("/delete-author/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await BlogAuthor.deleteOne({ _id: ObjectId(id) });
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Deleted Author",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// All Category Data Send (GET)
+app.get("/blog-categories", async (req, res) => {
+  try {
+    const cursor = BlogCategory.find({});
+    const data = await cursor.toArray();
+    res.send({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Category Data Send by ID (GET)
+app.get("/blog-category/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const data = await BlogCategory.findOne({ _id: ObjectId(id) });
+    if (!data) {
+      res.send({
+        success: false,
+        error: "Category not found",
+        data: {},
+      });
+      return;
+    }
+    res.send({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Add New Blog Category (POST)
+app.post("/add-blog-category", async (req, res) => {
+  try {
+    const data = req.body;
+
+    const result = await BlogCategory.insertOne(data);
+
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Added Blog Category",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Update Author Info (PUT)
+app.put("/update-blog-category/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const data = req.body;
+
+    const query = { _id: ObjectId(id) };
+    const option = { upsert: true };
+    const newData = {
+      $set: data,
+    };
+
+    const result = await BlogCategory.updateOne(query, newData, option);
+
+    if (result.acknowledged && result.modifiedCount > 0) {
+      res.send({
+        success: true,
+        message: "Successfully Updated!",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Delete Author (DELETE)
+app.delete("/delete-blog-category/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await BlogCategory.deleteOne({ _id: ObjectId(id) });
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Deleted Category",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Add Single Blog (POST)
+app.post("/add-new-blog", async (req, res) => {
+  try {
+    const result = await Blogs.insertOne(req.body);
+
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Added Blog",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
   } catch (error) {
     res.send({
       success: false,
