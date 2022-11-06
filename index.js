@@ -715,10 +715,10 @@ app.get("/blogs", async (req, res) => {
 });
 
 // Send Single Blog Data (GET)
-app.get("/single-blog/:slug", async (req, res) => {
-  const { slug } = req.params;
+app.get("/single-blog/:cat_slug/:slug", async (req, res) => {
+  const { slug, cat_slug } = req.params;
   try {
-    const data = await Blogs.findOne({ slug: slug });
+    const data = await Blogs.findOne({ slug: `${cat_slug}/${slug}` });
     if (!data) {
       res.send({
         success: false,
