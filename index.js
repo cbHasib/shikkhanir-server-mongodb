@@ -718,7 +718,9 @@ app.get("/blogs", async (req, res) => {
 app.get("/single-blog/:cat_slug/:slug", async (req, res) => {
   const { slug, cat_slug } = req.params;
   try {
-    const data = await Blogs.findOne({ slug: `${cat_slug}/${slug}` });
+    const query = { slug: `${cat_slug}/${slug}` };
+
+    const data = await Blogs.findOne(query);
     if (!data) {
       res.send({
         success: false,
@@ -727,10 +729,101 @@ app.get("/single-blog/:cat_slug/:slug", async (req, res) => {
       });
       return;
     }
+
+    const option = { upsert: true };
+    const updateDocs = {
+      $set: {
+        viewCount: data.viewCount + 1,
+      },
+    };
+    const result = await Blogs.updateOne(query, updateDocs, option);
+
     res.send({
       success: true,
       data: data,
     });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Send Single Blog Data by ID (GET)
+app.get("/get-single-blog/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const data = await Blogs.findOne({ _id: ObjectId(id) });
+    if (!data) {
+      res.send({
+        success: false,
+        error: "Blog not found",
+        data: {},
+      });
+      return;
+    }
+    res.send({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Update Post Info (PUT)
+app.put("/update-blog/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const data = req.body;
+
+    const query = { _id: ObjectId(id) };
+    const option = { upsert: true };
+    const newData = {
+      $set: data,
+    };
+
+    const result = await Blogs.updateOne(query, newData, option);
+
+    if (result.acknowledged && result.modifiedCount > 0) {
+      res.send({
+        success: true,
+        message: "Successfully Updated!",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Delete Blog (DELETE)
+app.delete("/delete-blog/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await Blogs.deleteOne({ _id: ObjectId(id) });
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "Successfully Deleted Blog",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
   } catch (error) {
     res.send({
       success: false,
