@@ -1122,6 +1122,40 @@ app.post("/add-new-blog", async (req, res) => {
   }
 });
 
+// Contact Form Data (POST)
+const ContactForm = db.collection("contactForm");
+app.post("/contact-form", async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+    const newData = {
+      name,
+      email,
+      subject,
+      message,
+      date: new Date(),
+      resolved: false,
+    };
+
+    const result = await ContactForm.insertOne(newData);
+    if (result.acknowledged) {
+      res.send({
+        success: true,
+        message: "We received your message. We will contact you soon.",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Message not sent, please try again later.",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server running on port: ${port}`);
 });
