@@ -714,6 +714,22 @@ app.get("/blogs", async (req, res) => {
   }
 });
 
+// Blog Data Update - Needed Data From Mongo (GET)
+app.get("/blog-count", async (req, res) => {
+  try {
+    const count = await Blogs.estimatedDocumentCount();
+    res.send({
+      success: true,
+      data: count,
+    });
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Send Single Blog Data (GET)
 app.get("/single-blog/:cat_slug/:slug", async (req, res) => {
   const { slug, cat_slug } = req.params;
