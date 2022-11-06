@@ -1156,6 +1156,59 @@ app.post("/contact-form", async (req, res) => {
   }
 });
 
+// All Contact Form Data (GET)
+app.get("/contact-form", async (req, res) => {
+  try {
+    const cursor = ContactForm.find({});
+    const data = await cursor.toArray();
+    if (data.length > 0) {
+      res.send({
+        success: true,
+        data: data,
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "No data found",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Marks as Solved Contact (Patch)
+app.patch("/solved-contact/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const query = { _id: ObjectId(id) };
+    const option = { upsert: true };
+    const newData = {
+      $set: { resolved: true },
+    };
+    const result = await ContactForm.updateOne(query, newData, option);
+    if (result.acknowledged && result.modifiedCount > 0) {
+      res.send({
+        success: true,
+        message: "Successfully Marked as Solved",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server running on port: ${port}`);
 });
