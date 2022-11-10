@@ -33,8 +33,6 @@ run().catch((err) => console.log(err));
 // Database on MongoDB
 const db = client.db(`${process.env.DB_NAME}`);
 
-module.exports = { run };
-
 // Instructor Collection on MongoDB
 const Instructors = db.collection("instructors");
 
@@ -1180,6 +1178,30 @@ app.get("/contact-form", async (req, res) => {
   }
 });
 
+// All Contact Form Data (GET)
+app.get("/contact-form/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const data = await ContactForm.findOne({ _id: ObjectId(id) });
+    if (data) {
+      res.send({
+        success: true,
+        data: data,
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "No data found",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Marks as Solved Contact (Patch)
 app.patch("/solved-contact/:id", async (req, res) => {
   try {
@@ -1194,6 +1216,58 @@ app.patch("/solved-contact/:id", async (req, res) => {
       res.send({
         success: true,
         message: "Successfully Marked as Solved",
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "Something went wrong!",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Review Collection
+const Reviews = db.collection("reviews");
+// All Review Data Send (GET)
+app.get("/reviews", async (req, res) => {
+  try {
+    const cursor = Reviews.find({});
+    const data = await cursor.toArray();
+    if (data.length > 0) {
+      res.send({
+        success: true,
+        data: data,
+      });
+    } else {
+      res.send({
+        success: false,
+        error: "No data found",
+      });
+    }
+  } catch (error) {
+    res.send({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Add New Review (POST)
+app.post("/add-review", async (req, res) => {
+  try {
+    const data = req.body;
+
+    const result = await BlogAuthor.insertOne(data);
+
+    if (result.acknowledged && result.insertedCount > 0) {
+      res.send({
+        success: true,
+        message: "Successfully Added Review",
       });
     } else {
       res.send({
